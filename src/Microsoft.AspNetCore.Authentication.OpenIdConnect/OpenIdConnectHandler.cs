@@ -332,7 +332,18 @@ namespace Microsoft.AspNetCore.Authentication.OpenIdConnect
             if (Options.ProtocolValidator.RequireNonce)
             {
                 message.Nonce = Options.ProtocolValidator.GenerateNonce();
-                WriteNonceCookie(message.Nonce);
+                var cookieOptions = new CookieOptions
+                {
+                    HttpOnly = true,
+                    SameSite = Http.SameSiteMode.None,
+                    Path = OriginalPathBase + Options.CallbackPath,
+                    Secure = Request.IsHttps,
+                    Expires = Clock.UtcNow.Add(Options.ProtocolValidator.NonceLifetime)
+                };
+
+                Options.ConfigureNonceCookie?.Invoke(Context, cookieOptions);
+
+                WriteNonceCookie(message.Nonce, cookieOptions);
             }
 
             GenerateCorrelationId(properties);
@@ -877,9 +888,10 @@ namespace Microsoft.AspNetCore.Authentication.OpenIdConnect
         /// Adds the nonce to <see cref="HttpResponse.Cookies"/>.
         /// </summary>
         /// <param name="nonce">the nonce to remember.</param>
+        /// <param name="options">The options for the cookie.</param>
         /// <remarks><see cref="M:IResponseCookies.Append"/> of <see cref="HttpResponse.Cookies"/> is called to add a cookie with the name: 'OpenIdConnectAuthenticationDefaults.Nonce + <see cref="M:ISecureDataFormat{TData}.Protect"/>(nonce)' of <see cref="OpenIdConnectOptions.StringDataFormat"/>.
         /// The value of the cookie is: "N".</remarks>
-        private void WriteNonceCookie(string nonce)
+        private void WriteNonceCookie(string nonce, CookieOptions options)
         {
             if (string.IsNullOrEmpty(nonce))
             {
@@ -889,13 +901,7 @@ namespace Microsoft.AspNetCore.Authentication.OpenIdConnect
             Response.Cookies.Append(
                 OpenIdConnectDefaults.CookieNoncePrefix + Options.StringDataFormat.Protect(nonce),
                 NonceProperty,
-                new CookieOptions
-                {
-                    HttpOnly = true,
-                    SameSite = Http.SameSiteMode.None,
-                    Secure = Request.IsHttps,
-                    Expires = Clock.UtcNow.Add(Options.ProtocolValidator.NonceLifetime)
-                });
+                options);
         }
 
         /// <summary>

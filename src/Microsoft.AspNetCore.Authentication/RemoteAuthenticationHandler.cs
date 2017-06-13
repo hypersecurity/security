@@ -205,8 +205,11 @@ namespace Microsoft.AspNetCore.Authentication
                 HttpOnly = true,
                 SameSite = SameSiteMode.None,
                 Secure = Request.IsHttps,
+                Path = OriginalPathBase + Options.CallbackPath,
                 Expires = Clock.UtcNow.Add(Options.RemoteAuthenticationTimeout),
             };
+
+            Options.ConfigureCorrelationIdCookie?.Invoke(Context, cookieOptions);
 
             properties.Items[CorrelationProperty] = correlationId;
 
