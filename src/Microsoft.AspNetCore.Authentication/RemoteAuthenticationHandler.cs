@@ -246,9 +246,13 @@ namespace Microsoft.AspNetCore.Authentication
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
+                Path = OriginalPathBase + Options.CallbackPath,
                 SameSite = SameSiteMode.None,
                 Secure = Request.IsHttps
             };
+
+            Options.ConfigureCorrelationIdCookie?.Invoke(Context, cookieOptions);
+
             Response.Cookies.Delete(cookieName, cookieOptions);
 
             if (!string.Equals(correlationCookie, CorrelationMarker, StringComparison.Ordinal))

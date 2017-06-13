@@ -929,9 +929,12 @@ namespace Microsoft.AspNetCore.Authentication.OpenIdConnect
                             var cookieOptions = new CookieOptions
                             {
                                 HttpOnly = true,
+                                Path = OriginalPathBase + Options.CallbackPath,
                                 SameSite = Http.SameSiteMode.None,
                                 Secure = Request.IsHttps
                             };
+
+                            Options.ConfigureNonceCookie?.Invoke(Context, cookieOptions);
 
                             Response.Cookies.Delete(nonceKey, cookieOptions);
                             return nonce;
