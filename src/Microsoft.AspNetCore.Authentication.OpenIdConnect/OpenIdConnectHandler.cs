@@ -332,18 +332,7 @@ namespace Microsoft.AspNetCore.Authentication.OpenIdConnect
             if (Options.ProtocolValidator.RequireNonce)
             {
                 message.Nonce = Options.ProtocolValidator.GenerateNonce();
-                var cookieOptions = new CookieOptions
-                {
-                    HttpOnly = true,
-                    SameSite = Http.SameSiteMode.None,
-                    Path = OriginalPathBase + Options.CallbackPath,
-                    Secure = Request.IsHttps,
-                    Expires = Clock.UtcNow.Add(Options.ProtocolValidator.NonceLifetime)
-                };
-
-                Options.ConfigureNonceCookie?.Invoke(Context, cookieOptions);
-
-                WriteNonceCookie(message.Nonce, cookieOptions);
+                WriteNonceCookie(message.Nonce);
             }
 
             GenerateCorrelationId(properties);
@@ -888,15 +877,25 @@ namespace Microsoft.AspNetCore.Authentication.OpenIdConnect
         /// Adds the nonce to <see cref="HttpResponse.Cookies"/>.
         /// </summary>
         /// <param name="nonce">the nonce to remember.</param>
-        /// <param name="options">The options for the cookie.</param>
         /// <remarks><see cref="M:IResponseCookies.Append"/> of <see cref="HttpResponse.Cookies"/> is called to add a cookie with the name: 'OpenIdConnectAuthenticationDefaults.Nonce + <see cref="M:ISecureDataFormat{TData}.Protect"/>(nonce)' of <see cref="OpenIdConnectOptions.StringDataFormat"/>.
         /// The value of the cookie is: "N".</remarks>
-        private void WriteNonceCookie(string nonce, CookieOptions options)
+        private void WriteNonceCookie(string nonce)
         {
             if (string.IsNullOrEmpty(nonce))
             {
                 throw new ArgumentNullException(nameof(nonce));
             }
+
+            var options = new CookieOptions
+            {
+                HttpOnly = true,
+                SameSite = Http.SameSiteMode.None,
+                Path = OriginalPathBase + Options.CallbackPath,
+                Secure = Request.IsHttps,
+                Expires = Clock.UtcNow.Add(Options.ProtocolValidator.NonceLifetime)
+            };
+
+            Options.ConfigureNonceCookie?.Invoke(Context, options);
 
             Response.Cookies.Append(
                 OpenIdConnectDefaults.CookieNoncePrefix + Options.StringDataFormat.Protect(nonce),
